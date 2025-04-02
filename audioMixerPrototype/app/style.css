@@ -11,7 +11,9 @@
     --icon-color: #555;
     --meter-bar-color-default: #4caf50;
     --meter-bg-color: #e0e0e0;
-    --mobile-fader-thumb-color: #ff505a;
+    --mobile-fader-thumb-color: #ff797f;
+    --download-active-bg: #1b3c1c;
+    --download-active-bg2: #4caf50;
 }
 
 body {
@@ -91,6 +93,22 @@ body {
     background-color: var(--button-active-bg);
 }
 
+@keyframes waitPlayButton {
+    0% {
+        color: #333;
+        transform: scale(0.8);
+    }
+    100% {
+        color: #3611dc;
+        transform: scale(1.5);
+    }
+}
+
+/* アニメーションを適用するクラス */
+#play-pause-button i.fa-play {
+    animation: waitPlayButton 2s infinite alternate ease;
+}
+
 #time-display {
     font-size: 1em;
     min-width: 110px;
@@ -148,8 +166,9 @@ body {
 /* ... (省略: track-icon, icon-placeholder, track-name スタイルは変更なし) ... */
 .track-icon {
     display: inline-block;
-    width: 2.5em;
-    height: 2.5em;
+    width: 90px;
+    height: 90px;
+    border-radius: 5px;
     vertical-align: middle;
     margin-bottom: 10px;
     fill: var(--icon-color);
@@ -159,8 +178,8 @@ body {
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    width: 2.5em;
-    height: 2.5em;
+    width: 90px;
+    height: 90px;
     border: 1px dashed #ccc;
     border-radius: 4px;
     font-size: 1.2em;
@@ -219,21 +238,18 @@ body {
 }
 
 /* フェーダー (メーターの上に配置) */
+/* フェーダー (メーターの上に配置) */
 .fader {
     appearance: none;
     -webkit-appearance: none;
-    width: 120px;
-    /* 長さ */
-    height: 16px;
-    /* つまみの高さに合わせる */
+    width: 120px; /* 長さ */
+    height: 16px; /* つまみの高さに合わせる */
     cursor: pointer;
-    background-color: transparent;
-    /* 背景は透明 */
+    background-color: transparent; /* 背景は透明 */
     transform-origin: center center;
-    transform: rotate(-90deg);
+    transform: rotate(-90deg); /* 横向きに回転 */
     position: absolute;
-    z-index: 2;
-    /* メーターの上 */
+    z-index: 2; /* メーターの上 */
     margin: 0;
 }
 
@@ -250,13 +266,13 @@ body {
 .fader::-webkit-slider-thumb {
     appearance: none;
     -webkit-appearance: none;
-    border: 1px solid #888;
-    height: 16px;
-    width: 16px;
-    border-radius: 50%;
-    background: #eee;
+    width: 20px; /* つまみの幅 */
+    height: 20px; /* つまみの高さ */
+    background: linear-gradient(to bottom, #e0e0e0, #c0c0c0); /* フラットなグラデーション */
+    border: 2px solid #888; /* 外枠 */
+    border-radius: 50%; /* 丸い形状 */
     cursor: pointer;
-    margin-top: -5px;
+    margin-top: -7px; /* トラック中央に配置 */
 }
 
 /* Firefox トラック (透明にする) */
@@ -270,11 +286,11 @@ body {
 
 /* Firefox つまみ */
 .fader::-moz-range-thumb {
-    border: 1px solid #888;
-    height: 16px;
-    width: 16px;
-    border-radius: 50%;
-    background: #eee;
+    width: 20px; /* つまみの幅 */
+    height: 20px; /* つまみの高さ */
+    background: linear-gradient(to bottom, #e0e0e0, #c0c0c0); /* フラットなグラデーション */
+    border: 2px solid #888; /* 外枠 */
+    border-radius: 50%; /* 丸い形状 */
     cursor: pointer;
 }
 
@@ -287,7 +303,8 @@ body {
 
 /* ... (省略: ボタンのスタイルは変更なし) ... */
 .solo-button,
-.mute-button {
+.mute-button,
+.download-button {
     border: 1px solid var(--border-color);
     background-color: var(--button-bg);
     border-radius: 4px;
@@ -301,21 +318,48 @@ body {
     color: var(--text-color);
 }
 
+.download-button{
+    width: 90px;
+    height: 30px;
+    margin: 10px 0 0 0;
+}
+
 .solo-button:hover,
-.mute-button:hover {
+.mute-button:hover,
+.download-button:hover {
     background-color: #d0d0d0;
+    box-shadow: 1px 2px 1px rgba(0, 0, 0, 0.3);
+}
+
+.download-button.downloaded{
+    background-color: var(--icon-color);
+    color: #aaa;
+    border-color: var(--icon-color);
+}
+
+.download-button.downloaded:hover {
+    background-color: var(--download-active-bg2);
+    color: #fff;
+}
+
+.download-button.downloaded2:hover{
+    background-color: #fff;
+    color: var(--icon-color);
+    border-color: var(--icon-color);
 }
 
 .solo-button[aria-pressed="true"] {
     background-color: var(--solo-active-bg);
     color: #fff;
     border-color: var(--solo-active-bg);
+    box-shadow: none;
 }
 
 .mute-button[aria-pressed="true"] {
     background-color: var(--mute-active-bg);
     color: #fff;
     border-color: var(--mute-active-bg);
+    box-shadow: none;
 }
 
 /*タイトル*/
@@ -332,7 +376,7 @@ body {
     padding: 0;
 }
 
-#musicTitle #date {
+#musicTitle p {
     font-size: .90rem;
     margin: 0;
     padding: 0;
@@ -387,7 +431,7 @@ body {
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 15px;
+        padding: 10px 15px 10px 10px;
         position: relative;
         /* 子要素の絶対配置基準 */
         min-height: 44px;
@@ -421,15 +465,15 @@ body {
     }
 
     .track-icon {
-        width: 1.8em;
-        height: 1.8em;
+        width: 46px;
+        height: 46px;
         margin-bottom: 0;
         margin-right: 10px;
     }
 
     .icon-placeholder {
-        width: 1.8em;
-        height: 1.8em;
+        width: 46px;
+        height: 46px;
         margin-bottom: 0;
         margin-right: 10px;
         font-size: 1em;
@@ -553,7 +597,7 @@ body {
         appearance: none;
         -webkit-appearance: none;
         /* 維持 */
-        width: 4px;
+        width: 7px;
         /* 細い幅 */
         height: 100px;
         /* 高さを指定（親要素より高くても可）*/
@@ -574,7 +618,7 @@ body {
     }
 
     .fader::-moz-range-thumb {
-        width: 4px;
+        width: 7px;
         height: 100px;
         background: var(--mobile-fader-thumb-color);
         border: none;
@@ -605,5 +649,9 @@ body {
         height: 40px;
         font-size: 0.9em;
         /* pointer-events: auto; (デフォルト) */
+    }
+
+    .download-button {
+        display: none;
     }
 }

@@ -31,12 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- トラック情報 (色情報を追加) ---
     const tracks = [
-        { id: 'strings', name: 'Strings', svgPath: 'icons/violin.svg', path: 'audio/strings.mp3', color: '#a0522d' }, // シエナ
-        { id: 'brass', name: 'Brass', svgPath: 'icons/trumpet.svg', path: 'audio/brass.mp3', color: '#ffd700' },   // ゴールド
-        { id: 'woodwinds', name: 'Woodwinds', svgPath: 'icons/flute.svg', path: 'audio/woodwinds.mp3', color: '#228b22' }, // フォレストグリーン
-        { id: 'untuned', name: 'Untuned Perc', svgPath: 'icons/drum.svg', path: 'audio/unTunedPercssion.mp3', color: '#778899' }, // ライトスレートグレー
-        { id: 'keyboards', name: 'Keyboards', svgPath: 'icons/piano.svg', path: 'audio/keyboards.mp3', color: '#4682b4' }, // スチールブルー
-        { id: 'fx', name: 'FX', svgPath: 'icons/effect.svg', path: 'audio/fx.mp3', color: '#da70d6' },       // オーキッド
+        { id: 'strings', name: 'Strings', svgPath: 'icons/test.svg', path: 'audio/strings.mp3', color: '#a0522d' }, // シエナ
+        { id: 'brass', name: 'Brass', svgPath: 'icons/test.svg', path: 'audio/brass.mp3', color: '#ffd700' },   // ゴールド
+        { id: 'woodwinds', name: 'Woodwinds', svgPath: 'icons/test.svg', path: 'audio/woodwinds.mp3', color: '#228b22' }, // フォレストグリーン
+        { id: 'untuned', name: 'Untuned Perc', svgPath: 'icons/test.svg', path: 'audio/unTunedPercssion.mp3', color: '#454545' }, // ライトスレートグレー
+        { id: 'keyboards', name: 'Keyboards', svgPath: 'icons/test.svg', path: 'audio/keyboards.mp3', color: '#4682b4' }, // スチールブルー
+        { id: 'fx', name: 'FX', svgPath: 'icons/test.svg', path: 'audio/fx.mp3', color: '#da70d6' },       // オーキッド
     ];
 
     // --- 初期化 ---
@@ -52,6 +52,18 @@ document.addEventListener('DOMContentLoaded', () => {
         await createMixerUI();
         await loadAllAudioFiles();
         setupEventListeners();
+
+        // スペースキーで再生・一時停止を切り替えるイベントリスナー
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault(); // ページスクロールなどのデフォルト動作を防ぐ
+                if (isPlaying) {
+                    pauseAudio(); // 再生中なら一時停止
+                } else {
+                    playAudio(); // 停止中なら再生
+                }
+            }
+        });
 
         // ★ 初期メーター色を設定 ★ (レベルは再生時に0になる)
         document.querySelectorAll('.track').forEach(trackElement => {
@@ -89,20 +101,16 @@ document.addEventListener('DOMContentLoaded', () => {
     async function createMixerUI() {
         if (!mixerElement) return;
         mixerElement.innerHTML = ''; // まず中身を空にする
-
-        // tracks 配列を for...of で順番に処理する
+    
         for (const track of tracks) {
             const trackDiv = document.createElement('div');
             trackDiv.classList.add('track');
             trackDiv.dataset.trackId = track.id;
-
-            let svgIconHTML = '<span class="icon-placeholder">?</span>'; // デフォルトのプレースホルダー
-
-            // SVGパスがあれば、ループ内で await を使って取得を試みる
-            // これにより、SVGの取得も（ある程度）順番通りになる
+    
+            let svgIconHTML = '<span class="icon-placeholder">?</span>';
             if (track.svgPath) {
                 try {
-                    const response = await fetch(track.svgPath); // SVGを待つ
+                    const response = await fetch(track.svgPath);
                     if (!response.ok) throw new Error(`Failed to load SVG: ${response.statusText}`);
                     const svgText = await response.text();
                     const parser = new DOMParser();
@@ -110,16 +118,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const svgElement = svgDoc.querySelector('svg');
                     if (svgElement) {
                         svgElement.classList.add('track-icon');
-                        svgIconHTML = svgElement.outerHTML; // 取得成功したら置き換える
+                        svgIconHTML = svgElement.outerHTML;
                     } else {
                         console.warn(`Valid SVG not found in ${track.svgPath}`);
                     }
                 } catch (error) {
                     console.error(`Error loading SVG for ${track.name}:`, error);
-                    // エラー時もプレースホルダーが表示される
                 }
             }
-
+    
             // HTML構造を組み立てる
             trackDiv.innerHTML = `
                 <div class="track-info">
@@ -136,14 +143,56 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="solo-button" aria-pressed="false" aria-label="${track.name} Solo">S</button>
                     <button class="mute-button" aria-pressed="false" aria-label="${track.name} Mute">M</button>
                 </div>
+                <button class="download-button" aria-pressed="false" data-track-id="${track.id}" aria-label="${track.name} Download"><i class="fas fa-download"></i></button>
             `;
-
-            // ループの現在の反復に対応する要素をDOMに追加する
-            // これで tracks 配列の順番通りに追加される
+    
             mixerElement.appendChild(trackDiv);
         }
-        // Promise.all はこの関数内では不要になる
-        console.log("Mixer UI created sequentially.");
+    
+        // ダウンロードボタンのイベントリスナーを設定
+        mixerElement.querySelectorAll('.download-button').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const trackId = button.dataset.trackId;
+                const track = tracks.find(t => t.id === trackId);
+                if (track) {
+                    const wavFileName = track.path.replace('.mp3', '.wav'); // .mp3 を .wav に置き換え
+                    downloadFile(wavFileName, `${track.name}.wav`);
+
+                    // ボタンに "downloaded" クラスを追加して視覚的変化を適用
+                    button.classList.remove('downloaded2');
+                    button.classList.add('downloaded');
+                    button.innerHTML = '<i class="fas fa-check"></i>'; // ボタンのテキストを変更
+                }
+            });
+
+            // ホバー時にクラスを一時的に変更
+            button.addEventListener('mouseenter', () => {
+                if (button.classList.contains('downloaded')) {
+                    button.innerHTML = '<i class="fas fa-download"></i>'; // 一時的にダウンロードアイコンに変更
+                    button.classList.add('downloaded2');
+                }
+            });
+
+            // ホバーが外れたときに元に戻す
+            button.addEventListener('mouseleave', () => {
+                if (button.classList.contains('downloaded')) {
+                    button.innerHTML = '<i class="fas fa-check"></i>'; // 元の状態に戻す
+                    button.classList.remove('downloaded2');
+                }
+            });
+        });
+
+        console.log("Mixer UI created.");
+    }
+    
+    // ファイルをダウンロードする関数
+    function downloadFile(filePath, fileName) {
+        const link = document.createElement('a');
+        link.href = filePath;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     // --- オーディオ読み込み (変更なし) ---
@@ -292,16 +341,16 @@ document.addEventListener('DOMContentLoaded', () => {
             setupTrackAnalyser(trackId);
         }
         const trackAnalyser = analyserNodes[trackId];
-
+    
         if (sourceNodes[trackId]) { try { sourceNodes[trackId].disconnect(); } catch(e){} }
         if (gainNodes[trackId]) { try { gainNodes[trackId].disconnect(); } catch(e){} }
         if (muteNodes[trackId]) { try { muteNodes[trackId].disconnect(); } catch(e){} }
-
+    
         const source = audioContext.createBufferSource();
         source.buffer = audioBuffers[trackId];
         const gainNode = audioContext.createGain();
         const muteNode = audioContext.createGain();
-
+    
         try {
             source.connect(gainNode).connect(muteNode);
             if (trackAnalyser) {
@@ -309,22 +358,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (globalAnalyserNode) {
                     muteNode.connect(globalAnalyserNode); // 音もglobalAnalyserへ
                 } else {
-                     muteNode.connect(audioContext.destination);
+                    muteNode.connect(audioContext.destination);
                 }
             } else if (globalAnalyserNode) {
-                 muteNode.connect(globalAnalyserNode);
+                muteNode.connect(globalAnalyserNode);
             } else {
-                 muteNode.connect(audioContext.destination);
+                muteNode.connect(audioContext.destination);
             }
         } catch (e) {
             console.error(`[setupAudioNodes] Error connecting nodes for ${trackId}:`, e);
             return;
         }
-
+    
         sourceNodes[trackId] = source;
         gainNodes[trackId] = gainNode;
         muteNodes[trackId] = muteNode;
-
+    
         const trackElement = mixerElement?.querySelector(`.track[data-track-id="${trackId}"]`);
         if (trackElement) {
             const fader = trackElement.querySelector(`.fader`);
@@ -335,7 +384,11 @@ document.addEventListener('DOMContentLoaded', () => {
             gainNode.gain.value = 1.0;
             muteNode.gain.value = 1.0;
         }
-
+    
+        // フェードインの初期設定 (-55dBからフェードイン)
+        gainNode.gain.setValueAtTime(0.001, audioContext.currentTime); // -55dB ≈ 0.001
+        gainNode.gain.exponentialRampToValueAtTime(1.0, audioContext.currentTime + 0.5); // 0.5秒でフェードイン
+    
         source.onended = () => {
             console.log(`[onended] Node for track ${trackId} ended.`);
             if (sourceNodes[trackId] === source) {
@@ -348,22 +401,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (Object.keys(sourceNodes).length === 0 && !isDraggingProgressBar) {
                 if (isPlaying) {
-                     console.warn("[onended] All source nodes ended but isPlaying is still true. Forcing stop.");
-                     stopAudio();
+                    console.warn("[onended] All source nodes ended but isPlaying is still true. Forcing stop.");
+                    stopAudio();
                 } else {
-                     console.log("[onended] All playback finished.");
-                     if (playPauseButton) {
-                         playPauseButton.innerHTML = '<i class="fas fa-play"></i>';
-                         playPauseButton.setAttribute('aria-label', '再生');
-                     }
-                     updateTimeDisplay();
-                     updateLevelMeters();
-                     requestAnimationFrame(drawWaveform);
+                    console.log("[onended] All playback finished.");
+                    if (playPauseButton) {
+                        playPauseButton.innerHTML = '<i class="fas fa-play"></i>';
+                        playPauseButton.setAttribute('aria-label', '再生');
+                    }
+                    updateTimeDisplay();
+                    updateLevelMeters();
+                    requestAnimationFrame(drawWaveform);
                 }
             }
         };
     }
-
+    
     // 再生を開始する関数 (変更なし)
     function playAudio() {
         if (audioContext.state === 'suspended') {
@@ -381,16 +434,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isPlaying || totalDuration <= 0) return;
         if (pauseOffset >= totalDuration) { pauseOffset = 0; }
         startTime = audioContext.currentTime - pauseOffset;
-        let needsSetup = false;
+    
+        // 必要なノードを再作成
         tracks.forEach(track => {
-            if (audioBuffers[track.id] && !sourceNodes[track.id]) {
-                needsSetup = true;
-                console.warn(`[playAudioInternal] Node for ${track.id} not found, setting up again.`);
+            if (audioBuffers[track.id]) {
+                // 既存のノードを削除
+                if (sourceNodes[track.id]) {
+                    try {
+                        sourceNodes[track.id].onended = null;
+                        sourceNodes[track.id].disconnect();
+                    } catch (e) {
+                        console.warn(`[playAudioInternal] Error disconnecting source node for ${track.id}:`, e);
+                    }
+                    delete sourceNodes[track.id];
+                }
+                // 新しいノードを作成
                 setupAudioNodes(track.id);
             }
         });
-        if (needsSetup) { updateSoloMuteState(); }
-
+    
         let playbackWillStart = false;
         Object.keys(sourceNodes).forEach(trackId => {
             const source = sourceNodes[trackId];
@@ -400,31 +462,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     const duration = buffer.duration;
                     const offset = Math.max(0, Math.min(pauseOffset, duration));
                     if (offset < duration) {
-                        source.start(0, offset);
+                        source.start(0, offset); // 再生を開始
                         playbackWillStart = true;
-                    } else {
-                        source.onended = null; source.disconnect();
-                        try { analyserNodes[trackId]?.disconnect(); } catch(e) {}
-                        gainNodes[trackId]?.disconnect(); muteNodes[trackId]?.disconnect();
-                        delete analyserNodes[trackId]; delete meterDataArrays[trackId];
-                        delete sourceNodes[trackId]; delete gainNodes[trackId]; delete muteNodes[trackId];
                     }
                 } catch (e) {
                     console.error(`[playAudioInternal] Error starting source node for ${trackId}:`, e);
-                    try{ source.onended = null; source.disconnect(); } catch(err){}
-                    try{ analyserNodes[trackId]?.disconnect(); } catch(err){}
-                    try{ gainNodes[trackId]?.disconnect(); } catch(err){}
-                    try{ muteNodes[trackId]?.disconnect(); } catch(err){}
-                    delete analyserNodes[trackId]; delete meterDataArrays[trackId];
-                    delete sourceNodes[trackId]; delete gainNodes[trackId]; delete muteNodes[trackId];
                 }
             }
         });
-
+    
         if (!playbackWillStart && Object.keys(sourceNodes).length === 0) {
             console.log("[playAudioInternal] No tracks to play.");
             return;
         }
+    
         updateSoloMuteState();
         isPlaying = true;
         if (playPauseButton) {
@@ -437,50 +488,86 @@ document.addEventListener('DOMContentLoaded', () => {
     // 一時停止処理 (変更なし)
     function pauseAudio() {
         if (!isPlaying) return;
+    
         const currentPlaybackTime = audioContext.currentTime - startTime;
         pauseOffset = Math.max(0, Math.min(currentPlaybackTime, totalDuration));
         console.log(`[pauseAudio] Pausing at offset: ${formatTime(pauseOffset)}`);
+    
         Object.keys(sourceNodes).forEach(trackId => {
             const node = sourceNodes[trackId];
-            if (node) {
-                try { node.onended = null; node.stop(0); node.disconnect(); }
-                catch (e) { console.warn(`[pauseAudio] Error stopping source node for ${trackId}: ${e.message}`); }
+            const gainNode = gainNodes[trackId];
+    
+            if (node && gainNode) {
+                try {
+                    // フェードアウト処理 (0.5秒で-55dBまで)
+                    gainNode.gain.setValueAtTime(gainNode.gain.value, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+    
+                    // 0.3秒後にノードを停止
+                    setTimeout(() => {
+                        node.onended = null;
+                        node.stop(0);
+                        node.disconnect();
+                    }, 800);
+                } catch (e) {
+                    console.warn(`[pauseAudio] Error stopping source node for ${trackId}: ${e.message}`);
+                }
             }
-            try { analyserNodes[trackId]?.disconnect(); } catch(e) {}
-            gainNodes[trackId]?.disconnect(); muteNodes[trackId]?.disconnect();
         });
-        analyserNodes = {}; meterDataArrays = {};
-        sourceNodes = {}; gainNodes = {}; muteNodes = {};
+    
         isPlaying = false;
         if (playPauseButton) {
             playPauseButton.innerHTML = '<i class="fas fa-play"></i>';
             playPauseButton.setAttribute('aria-label', '再生');
         }
+    
         stopAnimationLoop();
         updateTimeDisplay();
         updateLevelMeters();
         requestAnimationFrame(drawWaveform);
     }
 
-    // 完全停止処理 (変更なし)
+    // 完全停止処理 (フェードアウトを追加)
     function stopAudio() {
         console.log('[stopAudio] Stopping playback...');
+
         Object.keys(sourceNodes).forEach(trackId => {
             const node = sourceNodes[trackId];
-            if (node) {
-                try { node.onended = null; node.stop(0); node.disconnect(); }
-                catch (e) { console.warn(`[stopAudio] Error stopping source node for ${trackId}: ${e.message}`); }
+            const gainNode = gainNodes[trackId];
+
+            if (node && gainNode) {
+                try {
+                    // フェードアウト処理 (0.5秒で-55dBまで)
+                    gainNode.gain.setValueAtTime(gainNode.gain.value, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+
+                    // 0.5秒後にノードを停止
+                    setTimeout(() => {
+                        node.onended = null;
+                        node.stop(0);
+                        node.disconnect();
+                    }, 800);
+                } catch (e) {
+                    console.warn(`[stopAudio] Error stopping source node for ${trackId}: ${e.message}`);
+                }
             }
-             try { analyserNodes[trackId]?.disconnect(); } catch(e) {}
-            gainNodes[trackId]?.disconnect(); muteNodes[trackId]?.disconnect();
         });
-        analyserNodes = {}; meterDataArrays = {};
-        sourceNodes = {}; gainNodes = {}; muteNodes = {};
-        pauseOffset = 0; startTime = 0; isPlaying = false;
+
+        // ノードと状態をリセット
+        analyserNodes = {};
+        meterDataArrays = {};
+        sourceNodes = {};
+        gainNodes = {};
+        muteNodes = {};
+        pauseOffset = 0;
+        startTime = 0;
+        isPlaying = false;
+
         if (playPauseButton) {
             playPauseButton.innerHTML = '<i class="fas fa-play"></i>';
             playPauseButton.setAttribute('aria-label', '再生');
         }
+
         stopAnimationLoop();
         updateTimeDisplay();
         updateLevelMeters();
@@ -494,27 +581,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const seekTimeClamped = Math.max(0, Math.min(time, totalDuration));
         const wasPlaying = isPlaying;
         console.log(`[seekAudio] Seeking to: ${formatTime(seekTimeClamped)}, Was Playing: ${wasPlaying}`);
-        Object.keys(sourceNodes).forEach(trackId => {
-            const sourceNode = sourceNodes[trackId];
-            if (sourceNode) {
-                try { sourceNode.onended = null; sourceNode.stop(0); sourceNode.disconnect(); }
-                catch (e) { console.warn(`[seekAudio] Error stopping source node for ${trackId}: ${e.message}`); }
-            }
-            try { analyserNodes[trackId]?.disconnect(); } catch(e) {}
-            gainNodes[trackId]?.disconnect(); muteNodes[trackId]?.disconnect();
-        });
-        analyserNodes = {}; meterDataArrays = {};
-        sourceNodes = {}; gainNodes = {}; muteNodes = {};
+    
+        // 再生中の場合のみノードを停止
+        if (isPlaying) {
+            Object.keys(sourceNodes).forEach(trackId => {
+                const sourceNode = sourceNodes[trackId];
+                if (sourceNode) {
+                    try {
+                        // ノードが再生されている場合のみ停止
+                        sourceNode.onended = null;
+                        sourceNode.stop(0);
+                        sourceNode.disconnect();
+                    } catch (e) {
+                        console.warn(`[seekAudio] Error stopping source node for ${trackId}: ${e.message}`);
+                    }
+                }
+                // ノードを再作成
+                setupAudioNodes(trackId);
+            });
+        }
+    
         pauseOffset = seekTimeClamped;
         isPlaying = false;
+    
         if (playPauseButton) {
             playPauseButton.innerHTML = '<i class="fas fa-play"></i>';
             playPauseButton.setAttribute('aria-label', '再生');
         }
-        tracks.forEach(track => {
-            if (audioBuffers[track.id]) { setupAudioNodes(track.id); }
-        });
+    
+        // ソロ・ミュート状態を更新
         updateSoloMuteState();
+    
+        // 再生中だった場合は再生を再開
         if (wasPlaying) {
             playAudio();
         } else {
@@ -523,9 +621,10 @@ document.addEventListener('DOMContentLoaded', () => {
             updateLevelMeters();
             requestAnimationFrame(drawWaveform);
         }
+    
         console.log(`[seekAudio] Seek finished. New pauseOffset: ${formatTime(pauseOffset)}`);
     }
-
+    
     // --- ソロ・ミュート制御 (変更なし) ---
     function updateSoloMuteState() {
         const isAnySoloActive = soloedTracks.size > 0;
@@ -766,22 +865,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // ボタンクリック (Solo/Mute) (変更なし)
+            // ソロ・ミュートボタンのクリックイベントリスナー
             mixerElement.addEventListener('click', (event) => {
                 const button = event.target.closest('button');
                 if (!button) return;
+
                 const trackElement = button.closest('.track');
                 if (!trackElement) return;
+
                 const trackId = trackElement.dataset.trackId;
                 if (!trackId) return;
+
                 if (button.classList.contains('solo-button')) {
                     const isPressed = button.getAttribute('aria-pressed') === 'true';
                     button.setAttribute('aria-pressed', String(!isPressed));
-                    if (!isPressed) { soloedTracks.add(trackId); } else { soloedTracks.delete(trackId); }
+
+                    if (!isPressed) {
+                        // ソロを有効にした場合、ミュートを解除
+                        const muteButton = trackElement.querySelector('.mute-button');
+                        if (muteButton) {
+                            muteButton.setAttribute('aria-pressed', 'false');
+                        }
+                        soloedTracks.add(trackId);
+                    } else {
+                        soloedTracks.delete(trackId);
+                    }
+
                     updateSoloMuteState();
                 } else if (button.classList.contains('mute-button')) {
                     const isPressed = button.getAttribute('aria-pressed') === 'true';
                     button.setAttribute('aria-pressed', String(!isPressed));
+
+                    if (!isPressed) {
+                        // ミュートを有効にした場合、ソロを解除
+                        const soloButton = trackElement.querySelector('.solo-button');
+                        if (soloButton) {
+                            soloButton.setAttribute('aria-pressed', 'false');
+                        }
+                        soloedTracks.delete(trackId);
+                    }
+
                     updateSoloMuteState();
                 }
             });
