@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>オーディオステムミキサー</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="loading-overlay">
+        <p>オーディオファイルを読み込み中...</p>
+        <progress id="loading-progress" max="100" value="0"></progress>
+    </div>
+
+    <div id="musicTitle">
+        <h3 id="musicTitleH3">Title DEMO</h3>
+        <p id="musicTitleDate">2025.XX.XX</p>
+    </div>
+
+    <div id="mixer">
+    </div>
+
+    <div id="playback-controls">
+        <div class="playback-controls-top">
+            <button id="play-pause-button" aria-label="再生/一時停止"><i class="fas fa-play"></i></button>
+            <button id="stop-button" aria-label="停止"><i class="fas fa-stop"></i></button>
+            <div id="time-display">0:00 / 0:00</div>
+        </div>
+        <div id="waveform-container">
+            <canvas id="waveform-canvas"></canvas>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="script.js"></script>
+</body>
+
+</html>

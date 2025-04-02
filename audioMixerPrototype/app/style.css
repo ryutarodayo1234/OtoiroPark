@@ -1,0 +1,609 @@
+:root {
+    --control-bar-height: 150px;
+    --mute-active-bg: #5b9aff;
+    --control-bar-bg: #f0f0f0;
+    --track-bg: #ffffff;
+    --button-bg: #e0e0e0;
+    --button-active-bg: #a0a0a0;
+    --solo-active-bg: #ffd700;
+    --text-color: #333;
+    --border-color: #ccc;
+    --icon-color: #555;
+    --meter-bar-color-default: #4caf50;
+    --meter-bg-color: #e0e0e0;
+    --mobile-fader-thumb-color: #ff505a;
+}
+
+body {
+    height: 100svh;
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #fafafa;
+    color: var(--text-color);
+    padding-bottom: 0;
+}
+
+/* ... (省略: loading-overlay, playback-controls, waveform-container スタイルは変更なし) ... */
+#loading-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    transition: opacity 0.5s ease-out;
+}
+
+#loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#loading-progress {
+    width: 80%;
+    max-width: 300px;
+    margin-top: 10px;
+}
+
+#playback-controls {
+    width: 100%;
+    height: var(--control-bar-height);
+    background-color: var(--control-bar-bg);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 10px 20px;
+    box-sizing: border-box;
+    z-index: 1000;
+}
+
+.playback-controls-top {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+#playback-controls button {
+    background-color: var(--button-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 1.2em;
+    color: var(--text-color);
+    margin-right: 15px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#playback-controls button:hover {
+    background-color: #d0d0d0;
+}
+
+#playback-controls button:active {
+    background-color: var(--button-active-bg);
+}
+
+#time-display {
+    font-size: 1em;
+    min-width: 110px;
+    text-align: right;
+    color: #555;
+    margin-left: auto;
+}
+
+#waveform-container {
+    width: 100%;
+    height: calc(var(--control-bar-height) - 80px);
+    min-height: 40px;
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+#waveform-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+
+/* --- ミキサー --- */
+#mixer {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 20px;
+}
+
+.track {
+    background-color: var(--track-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.track-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 15px;
+    text-align: center;
+    min-height: 4em;
+}
+
+/* ... (省略: track-icon, icon-placeholder, track-name スタイルは変更なし) ... */
+.track-icon {
+    display: inline-block;
+    width: 2.5em;
+    height: 2.5em;
+    vertical-align: middle;
+    margin-bottom: 10px;
+    fill: var(--icon-color);
+}
+
+.icon-placeholder {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 2.5em;
+    height: 2.5em;
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+    font-size: 1.2em;
+    color: #ccc;
+    vertical-align: middle;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.track-name {
+    font-weight: bold;
+    word-break: break-word;
+    font-size: .8rem;
+}
+
+
+/* --- デスクトップ用: フェーダーとメーター重ね合わせ --- */
+.track-controls {
+    position: relative;
+    /* 絶対配置の基準 */
+    width: 100%;
+    /* 幅を確保 */
+    height: 150px;
+    /* 高さを確保 (フェーダー回転後+α) */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* 中央揃え */
+    margin-bottom: 15px;
+}
+
+/* レベルメーター (背景として配置) */
+.level-meter {
+    position: absolute;
+    width: 14px;
+    /* フェーダーのトラックと同じ幅 */
+    height: 120px;
+    /* フェーダーのトラックと同じ長さ */
+    background-color: var(--meter-bg-color);
+    /* 背景色 */
+    border-radius: 3px;
+    overflow: hidden;
+    z-index: 1;
+    /* フェーダーの後ろ */
+}
+
+.level-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    /* JSで高さを制御 */
+    background-color: var(--meter-bar-color, var(--meter-bar-color-default));
+    transition: height 0.05s linear;
+}
+
+/* フェーダー (メーターの上に配置) */
+.fader {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 120px;
+    /* 長さ */
+    height: 16px;
+    /* つまみの高さに合わせる */
+    cursor: pointer;
+    background-color: transparent;
+    /* 背景は透明 */
+    transform-origin: center center;
+    transform: rotate(-90deg);
+    position: absolute;
+    z-index: 2;
+    /* メーターの上 */
+    margin: 0;
+}
+
+/* Webkit トラック (透明にする) */
+.fader::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 6px;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+}
+
+/* Webkit つまみ */
+.fader::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid #888;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: #eee;
+    cursor: pointer;
+    margin-top: -5px;
+}
+
+/* Firefox トラック (透明にする) */
+.fader::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+}
+
+/* Firefox つまみ */
+.fader::-moz-range-thumb {
+    border: 1px solid #888;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: #eee;
+    cursor: pointer;
+}
+
+/* --- ボタン --- */
+.buttons {
+    display: flex;
+    gap: 10px;
+    /* margin-top は .track-controls で設定 */
+}
+
+/* ... (省略: ボタンのスタイルは変更なし) ... */
+.solo-button,
+.mute-button {
+    border: 1px solid var(--border-color);
+    background-color: var(--button-bg);
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 40px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-color);
+}
+
+.solo-button:hover,
+.mute-button:hover {
+    background-color: #d0d0d0;
+}
+
+.solo-button[aria-pressed="true"] {
+    background-color: var(--solo-active-bg);
+    color: #fff;
+    border-color: var(--solo-active-bg);
+}
+
+.mute-button[aria-pressed="true"] {
+    background-color: var(--mute-active-bg);
+    color: #fff;
+    border-color: var(--mute-active-bg);
+}
+
+/*タイトル*/
+#musicTitle {
+    width: 100%;
+    text-align: center;
+    background-color: var(--control-bar-bg);
+    padding: 30px 0;
+    border: 1px solid var(--border-color);
+}
+
+#musicTitle h3 {
+    margin: 0;
+    padding: 0;
+}
+
+#musicTitle #date {
+    font-size: .90rem;
+    margin: 0;
+    padding: 0;
+    color: #888;
+}
+
+/* --- スマホ向けスタイル --- */
+@media (max-width: 768px) {
+    body {
+        padding-top: 0;
+        padding-bottom: calc(var(--control-bar-height) + 10px);
+        /* 目安 */
+    }
+
+    #musicTitle {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 30;
+    }
+
+    /* 再生コントロール等は省略 */
+    #playback-controls {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        border-top: 1px solid var(--border-color);
+        border-bottom: none;
+        padding: 10px 10px 15px 10px;
+        height: auto;
+    }
+
+    /* ... 他の playback-controls 内要素のスタイル ... */
+    #waveform-container {
+        height: 40px;
+        margin: 0;
+    }
+
+    #mixer {
+        height: calc(100svh - 122px - 122px);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 122px 10px 122px 10px;
+        overflow-x: scroll;
+        overflow-x: hidden;
+    }
+
+    /* --- モバイル用 トラックレイアウト --- */
+    .track {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        position: relative;
+        /* 子要素の絶対配置基準 */
+        min-height: 44px;
+        /* 最小高さを確保 */
+        gap: 15px;
+        /* 要素間のスペース */
+        border: 1px solid var(--border-color);
+        /* 画像に合わせて枠線を表示 */
+        border-radius: 5px;
+        /* 画像に合わせて角丸 */
+        background-color: transparent;
+        /* 画像に合わせて背景色を設定 */
+    }
+
+    .track-info {
+        display: flex;
+        /* 維持 */
+        flex-direction: row;
+        align-items: center;
+        margin-bottom: 0;
+        text-align: left;
+        /* flex-grow: 1; ←削除 */
+        margin-right: 0;
+        /* gapで管理するため削除 */
+        min-height: initial;
+        /* order指定は不要 */
+        position: relative;
+        /* z-indexを使う場合 */
+        z-index: 2;
+        /* コントロール類より手前 */
+    }
+
+    .track-icon {
+        width: 1.8em;
+        height: 1.8em;
+        margin-bottom: 0;
+        margin-right: 10px;
+    }
+
+    .icon-placeholder {
+        width: 1.8em;
+        height: 1.8em;
+        margin-bottom: 0;
+        margin-right: 10px;
+        font-size: 1em;
+    }
+
+    .track-name {
+        font-weight: bold;
+        word-break: break-word;
+        font-size: 1rem;
+    }
+
+
+    /* --- モバイル用: コントロール（メーターとフェーダー）エリア --- */
+    .track-controls {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        /* 親要素いっぱいの幅 */
+        height: 100%;
+        /* トラックの高さに合わせるか、固定値を設定 */
+        flex-grow: 1;
+        /* 利用可能なスペースを埋める */
+        margin-bottom: 0;
+        /* マージンリセット */
+        overflow: hidden;
+        /* z-index, pointer-events は削除（子要素で制御） */
+        /* top, left は不要 */
+    }
+
+    /* レベルメーター (横向き、背景として) */
+    .level-meter {
+        position: absolute;
+        /* .track-controls 内で絶対配置 */
+        top: 50%;
+        left: 0;
+        width: 100%;
+        /* 親要素(.track-controls)いっぱいの幅 */
+        background-color: var(--track-bg);
+        /* 背景色 */
+        border-radius: 3px;
+        /* 角丸 */
+        overflow: hidden;
+        z-index: -1;
+        /* フェーダーより後ろ */
+        pointer-events: none;
+        /* クリック等のイベントを無効化 */
+        transform: translateY(-50%);
+        /* background-color: var(--track-bg); ← 削除 */
+    }
+
+    /* レベルバー (横向き) */
+    .level-bar {
+        position: absolute;
+        /* 維持 */
+        bottom: auto;
+        top: 0;
+        left: 0;
+        /* 維持 */
+        width: 0%;
+        /* JSで幅を制御 */
+        height: 100%;
+        /* メーターの高さに合わせる */
+        background-color: var(--meter-bar-color, var(--meter-bar-color-default));
+        /* 維持 */
+        transition: width 0.05s linear;
+        /* 維持 */
+    }
+
+    /* フェーダー (横向き、メーターの上に重ねる透明な操作レイヤー) */
+    .fader {
+        appearance: none;
+        -webkit-appearance: none;
+        /* 維持 */
+        display: block;
+        /* 維持 */
+        position: absolute;
+        /* .track-controls 内で絶対配置 */
+        top: 0;
+        left: 0;
+        width: 100%;
+        /* 親要素(.track-controls)いっぱいの幅 */
+        height: 100%;
+        /* 親要素(.track-controls)いっぱいの高さ（操作領域）*/
+        transform: rotate(0deg);
+        /* 回転解除 */
+        background-color: transparent;
+        /* 背景は透明に */
+        z-index: 2;
+        /* レベルメーターより手前 */
+        pointer-events: auto;
+        /* 操作可能にする */
+        margin: 0;
+        /* マージンリセット */
+        cursor: pointer;
+        /* カーソル形状 */
+        /* order: 2; ←削除 */
+    }
+
+    /* モバイル用 フェーダー トラック (透明にする) */
+    .fader::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 100%;
+        /* 高さいっぱいにして操作しやすく */
+        background: transparent;
+        /* 透明 */
+        border: none;
+        border-radius: 0;
+    }
+
+    .fader::-moz-range-track {
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+    }
+
+    /* モバイル用 フェーダー つまみ (赤い縦線) */
+    .fader::-webkit-slider-thumb {
+        appearance: none;
+        -webkit-appearance: none;
+        /* 維持 */
+        width: 4px;
+        /* 細い幅 */
+        height: 100px;
+        /* 高さを指定（親要素より高くても可）*/
+        background: var(--mobile-fader-thumb-color);
+        /* 赤色 */
+        border: none;
+        border-radius: 0;
+        /* 四角く */
+        cursor: pointer;
+        /* 維持 */
+        /* 垂直中央揃えのためのマージン調整 */
+        /* margin-top: -7px; の代わりに以下を試す */
+        position: relative;
+        /* margin相殺のため */
+        top: 50%;
+        transform: translateY(-50%);
+        /* つまみ自身の高さの中央を親要素の中央に合わせる */
+    }
+
+    .fader::-moz-range-thumb {
+        width: 4px;
+        height: 100px;
+        background: var(--mobile-fader-thumb-color);
+        border: none;
+        border-radius: 0;
+        cursor: pointer;
+        /* Firefoxは通常、垂直中央揃えは不要なことが多い */
+    }
+
+
+    /* ボタン */
+    .buttons {
+        display: flex;
+        /* 維持 */
+        gap: 8px;
+        /* 維持 */
+        margin-top: 0;
+        /* 維持 */
+        /* order: 3; ←削除 */
+        position: relative;
+        /* z-indexのため */
+        z-index: 2;
+        /* 情報エリアやフェーダーと同等かそれ以上 */
+    }
+
+    .solo-button,
+    .mute-button {
+        width: 40px;
+        height: 40px;
+        font-size: 0.9em;
+        /* pointer-events: auto; (デフォルト) */
+    }
+}
