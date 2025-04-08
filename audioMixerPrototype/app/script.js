@@ -39,12 +39,66 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'fx', name: 'FX', svgPath: 'icons/test.svg', path: 'audio/fx.mp3', color: '#da70d6' },       // オーキッド
     ];
 
+    const audioLoadDialog = document.getElementById('audio-load-dialog');
+    const audioLoadMessage = document.getElementById('audio-load-message');
+    const audioLoadOkButton = document.getElementById('audio-load-ok');
+    const audioLoadCancelButton = document.getElementById('audio-load-cancel');
+    
+    // サイト読み込み時にMP3ファイルの合計サイズを確認するダイアログ
+    async function confirmAudioLoad() {
+        const totalSizeMB = await calculateTotalAudioSize(); // 合計サイズを計算
+        audioLoadMessage.textContent = `このページでは、合計 ${totalSizeMB}MB のMP3ファイルを読み込みます。\n続行しますか？`;
+
+        return new Promise((resolve) => {
+            audioLoadDialog.classList.remove('hidden');
+
+            const handleOk = () => {
+                audioLoadDialog.classList.add('hidden');
+                audioLoadOkButton.removeEventListener('click', handleOk);
+                resolve(true);
+            };
+
+            audioLoadOkButton.addEventListener('click', handleOk);
+        });
+    }
+
+    // オーディオファイルの合計サイズを計算する関数
+    async function calculateTotalAudioSize() {
+        let totalSizeBytes = 0;
+
+        for (const track of tracks) {
+            try {
+                const response = await fetch(track.path, { method: 'HEAD' });
+                if (response.ok) {
+                    const contentLength = response.headers.get('Content-Length');
+                    if (contentLength) {
+                        totalSizeBytes += parseInt(contentLength, 10);
+                    }
+                } else {
+                    console.warn(`Failed to fetch HEAD for ${track.name}: ${response.statusText}`);
+                }
+            } catch (error) {
+                console.error(`Error fetching HEAD for ${track.name}:`, error);
+            }
+        }
+
+        const totalSizeMB = (totalSizeBytes / (1024 * 1024)).toFixed(2); // バイトをMBに変換
+        console.log(`Total audio size: ${totalSizeMB} MB`);
+        return totalSizeMB;
+    }
+
     // --- 初期化 ---
     async function init() {
+        const userConfirmed = await confirmAudioLoad();
+        if (!userConfirmed) {
+            console.log("ユーザーが読み込みをキャンセルしました。");
+            return; // 初期化を中止
+        }
+
         if (waveformCanvas) {
-             waveformCtx = waveformCanvas.getContext('2d');
+            waveformCtx = waveformCanvas.getContext('2d');
         } else {
-             console.error("Waveform canvas element not found!");
+            console.error("Waveform canvas element not found!");
         }
 
         showLoading();
@@ -79,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hideLoading();
         console.log("Audio Mixer Initialized");
         if (waveformCanvas) {
-             resizeCanvas();
+            resizeCanvas();
         }
     }
 
