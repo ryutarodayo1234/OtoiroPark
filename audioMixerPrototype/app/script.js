@@ -43,6 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const audioLoadMessage = document.getElementById('audio-load-message');
     const audioLoadOkButton = document.getElementById('audio-load-ok');
     const audioLoadCancelButton = document.getElementById('audio-load-cancel');
+    const loadingText = document.getElementById('loading-text');
+    const progressBar = document.getElementById('loading-progress');
     
     // サイト読み込み時にMP3ファイルの合計サイズを確認するダイアログ
     async function confirmAudioLoad() {
@@ -56,6 +58,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 audioLoadDialog.classList.add('hidden');
                 audioLoadOkButton.removeEventListener('click', handleOk);
                 resolve(true);
+
+                // OKボタンを押したときの処理
+            loadingText.textContent = "オーディオファイルを読み込み中..."; // テキストを変更
+            progressBar.classList.add('show'); // progressBarにクラスを追加
             };
 
             audioLoadOkButton.addEventListener('click', handleOk);

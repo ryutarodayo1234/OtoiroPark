@@ -70,9 +70,14 @@ body {
 }
 
 #loading-progress {
+    opacity: 0;
     width: 80%;
     max-width: 300px;
     margin-top: 10px;
+}
+
+#loading-progress.show{
+    opacity: 1;
 }
 
 #playback-controls {
