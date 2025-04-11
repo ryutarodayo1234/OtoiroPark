@@ -130,7 +130,7 @@ body {
         transform: scale(0.8);
     }
     100% {
-        color: #3611dc;
+        color: #ff505a;
         transform: scale(1.5);
     }
 }
